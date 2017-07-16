@@ -2,15 +2,76 @@
   <head>
     <title>Math Game</title>
     <meta content="">
+    <link href="https://bootswatch.com/simplex/bootstrap.min.css" rel="stylesheet">
     <style></style>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/2.0.3/socket.io.js"></script>
+
+    <script
+  src="https://code.jquery.com/jquery-3.2.1.min.js"
+  integrity="sha256-hwg4gsxgFZhOsEEamdOYGBf13FyQuiTwlAQgxVSNgt4="
+  crossorigin="anonymous"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
   </head>
   <body>
-  	Welcome to the game!!
+    <div class="container">
+      <div class="jumbotron">
+        <h1>Math Game</h1>
+        <p>This is a simple math game.</p>
+        <p>
+
+          <div class="col-xs-4">
+            <img src="cinqueterre.jpg" class="img-circle" alt="Cinque Terre" width="20" height="20">
+
+            <button class="btn btn-primary" data-toggle="modal" data-target="#my-change-user-info">Change User Info</button>
+            <div class="modal fade" tabindex="-1" role="dialog" aria-hidden="true" id="my-change-user-info">
+                <div class="modal-dialog">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+                            <!-- <h4 class="modal-title">User Form</h4> -->
+                        </div>
+                        
+                        <div class="modal-body">
+
+                          
+                        </div>
+                        
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+                            <button type="button" class="btn btn-primary" id="btn-my-join">Join!</button>
+                        </div>
+                    </div><!-- /.modal-content -->
+                </div><!-- /.modal -->
+            </div>
+
+          </div>
+
+        </p>
+      </div>
+
+       <div class="row">
+          <div class="col-xs-12">game panel</div> 
+       </div>
+
+    </div>
   	
   	<script>
-  		var socket= io();
+      var socket= io();
+
+      socket.on('init_user', function(data){
+        console.log(data);
+      });
+
+      $("#btn-my-join").click(function() {
+        // console.log("clicked")
+
+        // send user msg to server
+
+        $('#my-change-user-info').modal('hide');
+
+      });
+
   	</script>
   </body>
 </html>
