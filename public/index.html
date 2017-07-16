@@ -3,7 +3,20 @@
     <title>Math Game</title>
     <meta content="">
     <link href="https://bootswatch.com/simplex/bootstrap.min.css" rel="stylesheet">
-    <style></style>
+    <style>
+      .other-user-list-item {
+        display: inline-block;
+        margin-right: 10px;
+      }
+      .other-user-list-enter-active, .other-user-list-leave-active {
+        transition: all 1s;
+      }
+      .other-user-list-enter, .other-user-list-leave-to
+      /* .list-leave-active for <2.1.8 */ {
+        opacity: 0;
+        transform: translateX(30px);
+      }
+    </style>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/2.0.3/socket.io.js"></script>
 
@@ -12,65 +25,148 @@
   integrity="sha256-hwg4gsxgFZhOsEEamdOYGBf13FyQuiTwlAQgxVSNgt4="
   crossorigin="anonymous"></script>
     <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
+
+    <script src="https://unpkg.com/vue"></script>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/lodash.js/4.14.1/lodash.min.js"></script>
   </head>
   <body>
-    <div class="container">
+    <div class="container" id="vue-game">
       <div class="jumbotron">
         <h1>Math Game</h1>
         <p>This is a simple math game.</p>
         <p>
-
-          <div class="col-xs-4">
-            <img src="cinqueterre.jpg" class="img-circle" alt="Cinque Terre" width="20" height="20">
-
-            <button class="btn btn-primary" data-toggle="modal" data-target="#my-change-user-info">Change User Info</button>
-            <div class="modal fade" tabindex="-1" role="dialog" aria-hidden="true" id="my-change-user-info">
+        
+          <div class="row">
+            <img :src="current_user.img_url" class="img-circle" alt="Cinque Terre" width="50" height="50">
+            <span class="label label-info">id: {{current_user.id}}</span>
+            <span class="label label-danger">name: {{current_user.name}}</span>
+          </div>
+          
+          <div class="row">
+            <p></p>
+            <button class="btn btn-primary" data-toggle="modal" data-target="#my-modal-change-user-info">Change User Info</button>
+            <div class="modal fade" tabindex="-1" role="dialog" aria-hidden="true" id="my-modal-change-user-info">
                 <div class="modal-dialog">
                     <div class="modal-content">
+
+                      <form class="form-horizontal" v-on:submit.prevent="user_form_submit">
+
                         <div class="modal-header">
                             <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
                             <!-- <h4 class="modal-title">User Form</h4> -->
                         </div>
                         
                         <div class="modal-body">
-
                           
+                            <div class="form-group">
+                              <label for="name" class="col-xs-2 control-label">Name</label>
+                              <div class="col-xs-10">
+                                <input type="text" v-model="tmp_current_user.name" class="form-control" id="name" placeholder="your game name">
+                              </div>
+                            </div>                            
                         </div>
                         
                         <div class="modal-footer">
-                            <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
-                            <button type="button" class="btn btn-primary" id="btn-my-join">Join!</button>
+                            <button type="reset" class="btn btn-default" data-dismiss="modal">Close</button>
+                            <button type="submit" class="btn btn-primary" id="btn-my-join" >Change</button>
                         </div>
+
+                      </form>
+
                     </div><!-- /.modal-content -->
                 </div><!-- /.modal -->
             </div>
-
           </div>
-
-        </p>
-      </div>
+      
+      </p>
+    </div>
 
        <div class="row">
-          <div class="col-xs-12">game panel</div> 
+          <div class="col-xs-12">
+
+            <transition-group name="other-user-list" tag="ul">
+              <li v-for="user in other_users" v-bind:key="user.id">
+                <img :src="user.img_url" class="img-circle" alt="Cinque Terre" width="50" height="50">
+                <span class="label label-info">id: {{user.id}}</span>
+                <span class="label label-danger">name: {{user.name}}</span>
+              </li>
+            </transition-group>
+            
+          </div> 
        </div>
 
     </div>
   	
   	<script>
-      var socket= io();
+      new Vue({
+              el: '#vue-game',
+              data: {
+                  socket: {},
 
-      socket.on('init_user', function(data){
-        console.log(data);
-      });
+                  current_user: {
+                    id: '',
+                    name: '',
+                    img_url: ''
+                  },
+                  tmp_current_user: {
+                    id: '',
+                    name: '',
+                    img_url: ''                   
+                  },
+                  other_users: []
+              },
+              mounted() {
+                let vm = this;
+                vm.socket = io();
 
-      $("#btn-my-join").click(function() {
-        // console.log("clicked")
+                vm.socket.on('init_user', function(data){
+                  console.log(data);
 
-        // send user msg to server
+                  // init current user
+                  vm.current_user = _.cloneDeep(data);
+                  vm.tmp_current_user = _.cloneDeep(data);
 
-        $('#my-change-user-info').modal('hide');
+                });
 
-      });
+                vm.socket.on('change_user_done', function(data){
+                  console.log('user changed!');
+                  console.log(data);
+                  vm.current_user = _.cloneDeep(data);
+                  vm.tmp_current_user = _.cloneDeep(data);
+                })
+
+                vm.socket.on('update_all_users', function(data){
+                  console.log('update all users');
+                  _.remove(data, function(user) {
+                    return user.id === vm.current_user.id
+                  });
+                  console.log(data);
+                  vm.other_users = data;
+                })
+
+                $('#my-modal-change-user-info').on('hidden.bs.modal', function () {
+                  console.log('modal closed');
+                  vm.tmp_current_user = _.cloneDeep(vm.current_user);  
+                })
+
+
+              },
+              methods: {
+                  user_form_submit: function (items) {
+                    let vm = this;
+
+                    console.log("change user info button clicked");
+
+                    // send user msg to server
+                    vm.socket.emit('change_user', vm.tmp_current_user);
+
+
+                    $('#my-modal-change-user-info').modal('hide');
+                  }
+
+              }
+      })
 
   	</script>
   </body>
