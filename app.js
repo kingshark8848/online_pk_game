@@ -6,6 +6,8 @@ let shortid = require('shortid');
 let app_url = 'http://localhost';
 let port = 3000;
 
+let _ = require('lodash');
+
 // serve staic file
 app.use(express.static('public'));
 
@@ -26,9 +28,20 @@ io.on('connection', function (socket) {
     // init socket
     init_user(socket);
 
+
     socket.on('change_user', function (data) {
         // change user
         change_user(socket, data);
+
+    });
+
+    socket.on('create_game_room', function (data) {
+        // create room
+        create_room(socket, data);
+
+        // broadcast to room
+        console.log('broadcast to room: '+socket.my_room.id);
+        io.to(socket.my_room.id).emit('room_test', 'this a room internal msg');
 
     });
 
@@ -41,30 +54,38 @@ io.on('connection', function (socket) {
 
 function get_user(socket) {
     return {
-        id: socket.id,
+        key: socket.key,
         name: socket.name,
         img_url: socket.img_url,
-        room: socket.room
+        my_room: _.cloneDeep(socket.my_room) //important
     }
 }
 
 function get_all_users() {
     let all_users = [];
     for (let i in SOCKET_LIST) {
-        all_users.push(get_user(SOCKET_LIST[i]));
+
+        let user = get_user(SOCKET_LIST[i]);
+        // important: hide passcode
+        if (user.my_room){
+            user.my_room.has_passcode = user.my_room.passcode.trim() !== '';
+            delete user.my_room['passcode'];
+        }
+
+        all_users.push(user);
     }
     return all_users;
 }
 
 function init_user(socket) {
-    socket.id = shortid.generate();
-    console.log('user ' + socket.id + ' connected'); //debug
+    socket.key = shortid.generate();
+    console.log('user ' + socket.key + ' connected'); //debug
 
-    socket.name = socket.id;
+    socket.name = socket.key;
     socket.img_url = app_url + ":" + port + '/img/avatar/1.jpg';
-    socket.room = null;
+    socket.my_room = null;
 
-    SOCKET_LIST[socket.id] = socket;
+    SOCKET_LIST[socket.key] = socket;
 
     // send socket info to client
     socket.emit('init_user', get_user(socket));
@@ -75,7 +96,7 @@ function init_user(socket) {
 }
 
 function change_user(socket, new_user_data) {
-    console.log('user ' + socket.id + ' changed!');
+    console.log('user ' + socket.key + ' changed!');
 
     // change data
     socket.name = new_user_data.name;
@@ -88,8 +109,30 @@ function change_user(socket, new_user_data) {
 }
 
 function remove_user(socket) {
-    delete SOCKET_LIST[socket.id];
-    console.log('user ' + socket.id + ' disconnected');
+    delete SOCKET_LIST[socket.key];
+    console.log('user ' + socket.key + ' disconnected');
+
+    // broadcast to all users
+    broadcast_all_users();
+}
+
+function create_room(socket, room_passcode) {
+
+    // check if already create room
+    if (socket.my_room){
+        socket.emit('my_error', 'you already created a room!'); // don't use 'error' as name as it has been reserved by system.
+        return;
+    }
+
+    // add room prop to socket
+    socket.my_room = {id: socket.key, passcode: room_passcode};
+
+    // socket join room
+    console.log('socket join room:'+socket.my_room.id);
+    socket.join(socket.my_room.id);
+
+    // notify client
+    socket.emit('create_room_done', get_user(socket));
 
     // broadcast to all users
     broadcast_all_users();

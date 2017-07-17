@@ -1,173 +1,327 @@
 <html xmlns:v-bind="http://www.w3.org/1999/xhtml" xmlns:v-on="http://www.w3.org/1999/xhtml">
-  <head>
+<head>
     <title>Math Game</title>
     <meta content="">
     <link href="https://bootswatch.com/simplex/bootstrap.min.css" rel="stylesheet">
+    <link href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css" rel="stylesheet"
+          integrity="sha384-wvfXpqpZZVQGK6TAh5PVlGOfQNHSoD2xbE+QkPxCAFlNEevoEH3Sl0sibVcOQVnN" crossorigin="anonymous">
     <style>
-      .other-user-list-item {
-        display: inline-block;
-        margin-right: 10px;
-      }
-      .other-user-list-enter-active, .other-user-list-leave-active {
-        transition: all 1s;
-      }
-      .other-user-list-enter, .other-user-list-leave-to
-      /* .list-leave-active for <2.1.8 */ {
-        opacity: 0;
-        transform: translateX(30px);
-      }
+        .other-user-list-item {
+            display: inline-block;
+            margin-right: 10px;
+        }
+
+        .other-user-list-enter-active, .other-user-list-leave-active {
+            transition: all 1s;
+        }
+
+        .other-user-list-enter, .other-user-list-leave-to
+            /* .list-leave-active for <2.1.8 */
+        {
+            opacity: 0;
+            transform: translateX(30px);
+        }
+
+        /*type write effect*/
+        .typewriter {
+            overflow: hidden; /* Ensures the content is not revealed until the animation */
+            border-left: .50em solid orange; /* The typwriter cursor */
+            white-space: nowrap; /* Keeps the content on a single line */
+            margin: 0 auto; /* Gives that scrolling effect as the typing happens */
+            letter-spacing: .15em; /* Adjust as needed */
+            animation:
+                    typing 3.5s steps(40, end),
+                    blink-caret .75s step-end infinite;
+        }
+
+        /* The typing effect */
+        @keyframes typing {
+            from { width: 0 }
+            to { width: 100% }
+        }
+
+        /* The typewriter cursor effect */
+        @keyframes blink-caret {
+            from, to { border-color: transparent }
+            50% { border-color: orange; }
+        }
     </style>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/2.0.3/socket.io.js"></script>
 
     <script
-  src="https://code.jquery.com/jquery-3.2.1.min.js"
-  integrity="sha256-hwg4gsxgFZhOsEEamdOYGBf13FyQuiTwlAQgxVSNgt4="
-  crossorigin="anonymous"></script>
+            src="https://code.jquery.com/jquery-3.2.1.min.js"
+            integrity="sha256-hwg4gsxgFZhOsEEamdOYGBf13FyQuiTwlAQgxVSNgt4="
+            crossorigin="anonymous"></script>
     <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
 
     <script src="https://unpkg.com/vue"></script>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/lodash.js/4.14.1/lodash.min.js"></script>
-  </head>
-  <body>
-    <div class="container" id="vue-game">
-      <div class="jumbotron">
+</head>
+<body>
+<div class="container" id="vue-game">
+    <div class="row" v-if="my_error">
+        <div class="alert alert-dismissible alert-danger">
+            <!--<button type="button" class="close" data-dismiss="alert">&times;</button>-->
+            <strong>Error happened!</strong> {{my_error}}
+        </div>
+    </div>
+
+    <div class="jumbotron">
         <h1>Math Game</h1>
         <p>This is a simple math game.</p>
-        <p>
-        
-          <div class="row">
-            <img :src="current_user.img_url" class="img-circle" alt="Cinque Terre" width="50" height="50">
-            <span class="label label-info">id: {{current_user.id}}</span>
-            <span class="label label-danger">name: {{current_user.name}}</span>
-          </div>
-          
-          <div class="row">
-            <p></p>
-            <button class="btn btn-primary" data-toggle="modal" data-target="#my-modal-change-user-info">Change User Info</button>
-            <div class="modal fade" tabindex="-1" role="dialog" aria-hidden="true" id="my-modal-change-user-info">
-                <div class="modal-dialog">
-                    <div class="modal-content">
 
-                      <form class="form-horizontal" v-on:submit.prevent="user_form_submit">
-
-                        <div class="modal-header">
-                            <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
-                            <!-- <h4 class="modal-title">User Form</h4> -->
-                        </div>
-                        
-                        <div class="modal-body">
-                          
-                            <div class="form-group">
-                              <label for="name" class="col-xs-2 control-label">Name</label>
-                              <div class="col-xs-10">
-                                <input type="text" v-model="tmp_current_user.name" class="form-control" id="name" placeholder="your game name">
-                              </div>
-                            </div>                            
-                        </div>
-                        
-                        <div class="modal-footer">
-                            <button type="reset" class="btn btn-default" data-dismiss="modal">Close</button>
-                            <button type="submit" class="btn btn-primary" id="btn-my-join" >Change</button>
-                        </div>
-
-                      </form>
-
-                    </div><!-- /.modal-content -->
-                </div><!-- /.modal -->
+        <div class="row">
+            <div class="col-xs-4">
+                <img :src="current_user.img_url" class="img-circle" alt="Cinque Terre" width="50" height="50">
+                <span class="label label-info">id: {{current_user.key}}</span>
+                <span class="label label-danger">name: {{current_user.name}}</span>
             </div>
-          </div>
-      
-      </p>
+
+            <div class="col-xs-6">
+                <button class="btn btn-primary" data-toggle="modal" data-target="#my-modal-change-user-info">Change User
+                    Info
+                </button>
+                <div class="modal fade" tabindex="-1" role="dialog" aria-hidden="true" id="my-modal-change-user-info">
+                    <div class="modal-dialog">
+                        <div class="modal-content">
+
+                            <form class="form-horizontal" v-on:submit.prevent="user_form_submit">
+
+                                <div class="modal-header">
+                                    <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;
+                                    </button>
+                                    <!-- <h4 class="modal-title">User Form</h4> -->
+                                </div>
+
+                                <div class="modal-body">
+
+                                    <div class="form-group">
+                                        <label for="name" class="col-xs-2 control-label">Name</label>
+                                        <div class="col-xs-10">
+                                            <input type="text" v-model="tmp_current_user.name" class="form-control"
+                                                   id="name" placeholder="your game name">
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="modal-footer">
+                                    <button type="reset" class="btn btn-default" data-dismiss="modal">Close</button>
+                                    <button type="submit" class="btn btn-primary" id="btn-my-join">Change</button>
+                                </div>
+
+                            </form>
+
+                        </div><!-- /.modal-content -->
+                    </div><!-- /.modal -->
+                </div>
+
+                <span v-if="!current_user.my_room">
+                    <button class="btn btn-primary" data-toggle="modal"
+                            data-target="#my-modal-create-room">Create PK Room</button>
+                    <div class="modal fade" tabindex="-1" role="dialog" aria-hidden="true" id="my-modal-create-room">
+                        <div class="modal-dialog">
+                            <div class="modal-content">
+
+                                <form class="form-horizontal" v-on:submit.prevent="create_room_form_submit">
+
+                                    <div class="modal-header">
+                                        <button type="button" class="close" data-dismiss="modal"
+                                                aria-hidden="true">&times;
+                                        </button>
+                                        <!-- <h4 class="modal-title">User Form</h4> -->
+                                    </div>
+
+                                    <div class="modal-body">
+
+                                        <div class="form-group">
+                                            <label for="passcode"
+                                                   class="col-xs-2 control-label">PassCode</label>
+                                            <div class="col-xs-10">
+                                                <input type="text" v-model="tmp_room_passcode"
+                                                       class="form-control"
+                                                       id="passcode"
+                                                       placeholder="your pass code. remain blank if you want anybody to join you">
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="modal-footer">
+                                        <button type="reset" class="btn btn-default"
+                                                data-dismiss="modal">Close</button>
+                                        <button type="submit" class="btn btn-primary" id="btn-my-create-room">Create!</button>
+                                    </div>
+
+                                </form>
+
+                            </div><!-- /.modal-content -->
+                        </div><!-- /.modal -->
+                    </div>
+                </span>
+            </div>
+        </div>
+
+        <!--<div class="row">-->
+
+            <!--<p></p>-->
+
+
+        <!--</div>-->
+
+        <div class="row" v-if="current_user.my_room">
+            <p></p>
+            <div class="col-xs-6">
+                <div class="panel panel-primary">
+                    <div class="panel-heading">
+                        <h3 class="panel-title">My PK Room</h3>
+                    </div>
+                    <div class="panel-body">
+                        <div class="list-group">
+                            <span class="list-group-item"><i class="fa fa-home fa-3x" aria-hidden="true"></i>Room ID: {{current_user.my_room.id}}</span>
+                            <span class="list-group-item"><i class="fa fa-key fa-3x" aria-hidden="true"></i>PassCode: {{current_user.my_room.passcode}}</span>
+                        </div>
+                        <div class="typewriter">
+                            <span class="text-primary"><b>Waiting for other player to join...</b></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+
     </div>
 
-       <div class="row">
-          <div class="col-xs-12">
+    <div class="row">
+        <div class="col-xs-12">
 
             <transition-group name="other-user-list" tag="ul">
-              <li v-for="user in other_users" v-bind:key="user.id">
-                <img :src="user.img_url" class="img-circle" alt="Cinque Terre" width="50" height="50">
-                <span class="label label-info">id: {{user.id}}</span>
-                <span class="label label-danger">name: {{user.name}}</span>
-              </li>
+                <li v-for="user in other_users" v-bind:key="user.key">
+                    <img :src="user.img_url" class="img-circle" alt="Cinque Terre" width="50" height="50">
+                    <span class="label label-info">id: {{user.key}}</span>
+                    <span class="label label-danger">name: {{user.name}}</span>
+                    <span v-if="user.my_room">is waiting for others to join...</span>
+                    <button class="btn btn-success" v-if="user.my_room">PK Him/Her</button>
+                </li>
             </transition-group>
-            
-          </div> 
-       </div>
 
+        </div>
     </div>
-  	
-  	<script>
-      new Vue({
-              el: '#vue-game',
-              data: {
-                  socket: {},
 
-                  current_user: {
-                    id: '',
-                    name: '',
-                    img_url: ''
-                  },
-                  tmp_current_user: {
-                    id: '',
-                    name: '',
-                    img_url: ''                   
-                  },
-                  other_users: []
-              },
-              mounted() {
+</div>
+
+<script>
+
+    new Vue({
+        el: '#vue-game',
+        data: {
+            socket: {},
+            current_user: {
+                key: '',
+                name: '',
+                img_url: '',
+                my_room: null
+            },
+            tmp_current_user: {
+                key: '',
+                name: '',
+                img_url: '',
+                my_room: null
+            },
+            tmp_room_passcode: '',
+            other_users: [],
+            my_error: ''
+        },
+        mounted() {
+            let vm = this;
+            vm.socket = io();
+
+            vm.socket.on('init_user', function (data) {
+                console.log(data);
+
+                // init current user
+                vm.current_user = _.cloneDeep(data);
+                vm.tmp_current_user = _.cloneDeep(data);
+
+            });
+
+            vm.socket.on('change_user_done', function (data) {
+                console.log('user changed!');
+                console.log(data);
+                vm.current_user = _.cloneDeep(data);
+                vm.tmp_current_user = _.cloneDeep(data);
+            });
+
+            vm.socket.on('update_all_users', function (data) {
+                console.log('update all users');
+                _.remove(data, function (user) {
+                    return user.key === vm.current_user.key
+                });
+                console.log(data);
+                vm.other_users = data;
+            });
+
+            vm.socket.on('create_room_done', function (data) {
+                console.log('create room done!');
+                console.log(data);
+
+                // update client data
+                vm.current_user = data;
+            });
+
+            vm.socket.on('my_error', function (error) {
+                console.log('error: ' + error);
+                vm.my_error = error;
+                setTimeout(function () {
+                    vm.my_error = '';
+                }, 5000);
+            });
+
+            this.socket.on('room_test', function (data) {
+                console.log(data);
+            });
+
+            $('#my-modal-change-user-info').on('hidden.bs.modal', function () {
+                console.log('modal change user closed');
+                vm.tmp_current_user = _.cloneDeep(vm.current_user);
+            });
+
+            $('#my-modal-create-room').on('hidden.bs.modal', function () {
+                console.log('modal change user closed');
+            });
+
+            // todo: error alert close by user handling: clear this.my_error
+
+
+        },
+        methods: {
+            user_form_submit: function () {
                 let vm = this;
-                vm.socket = io();
 
-                vm.socket.on('init_user', function(data){
-                  console.log(data);
+                console.log("change user info form submitted.");
 
-                  // init current user
-                  vm.current_user = _.cloneDeep(data);
-                  vm.tmp_current_user = _.cloneDeep(data);
-
-                });
-
-                vm.socket.on('change_user_done', function(data){
-                  console.log('user changed!');
-                  console.log(data);
-                  vm.current_user = _.cloneDeep(data);
-                  vm.tmp_current_user = _.cloneDeep(data);
-                });
-
-                vm.socket.on('update_all_users', function(data){
-                  console.log('update all users');
-                  _.remove(data, function(user) {
-                    return user.id === vm.current_user.id
-                  });
-                  console.log(data);
-                  vm.other_users = data;
-                });
-
-                $('#my-modal-change-user-info').on('hidden.bs.modal', function () {
-                  console.log('modal closed');
-                  vm.tmp_current_user = _.cloneDeep(vm.current_user);  
-                })
+                // send user msg to server
+                vm.socket.emit('change_user', vm.tmp_current_user);
 
 
-              },
-              methods: {
-                  user_form_submit: function (items) {
-                    let vm = this;
+                $('#my-modal-change-user-info').modal('hide');
+            },
 
-                    console.log("change user info button clicked");
+            create_room_form_submit: function () {
+                let vm = this;
 
-                    // send user msg to server
-                    vm.socket.emit('change_user', vm.tmp_current_user);
+                console.log("create game room form submitted.");
 
+                // send game room info to server
+                vm.socket.emit('create_game_room', vm.tmp_room_passcode);
 
-                    $('#my-modal-change-user-info').modal('hide');
-                  }
+                $('#my-modal-create-room').modal('hide');
 
-              }
-      })
+            }
 
-  	</script>
-  </body>
+        }
+    })
+
+</script>
+</body>
 </html>
