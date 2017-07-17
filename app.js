@@ -11,14 +11,14 @@ app.use(express.static('public'));
 
 app.get('/', function (req, res) {
   res.sendFile(__dirname + '/public/index.html');
-})
+});
 
 http.listen(port, function () {
   console.log('Example app listening on port '+port+'!');
-})
+});
 
-SOCKET_LIST = {};
-ALL_USERS = [];
+var SOCKET_LIST = {};
+var ALL_USERS = [];
 
 io.on('connection', function(socket){
   socket.id = shortid.generate();
@@ -39,14 +39,14 @@ io.on('connection', function(socket){
   	// notify client
   	socket.emit('change_user_done', get_user(socket));
 
-  })
+  });
 
   socket.on('disconnect', function(){
   	delete SOCKET_LIST[socket.id];
     console.log('user '+socket.id+' disconnected');
   })
 
-})
+});
 
 setInterval(function(){
 
@@ -57,7 +57,7 @@ setInterval(function(){
 		socket.emit('update_all_users', ALL_USERS);
 	}
 
-},1000)
+},1000);
 
 function get_user(socket){
 	return {
