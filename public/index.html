@@ -1,4 +1,4 @@
-<html>
+<html xmlns:v-bind="http://www.w3.org/1999/xhtml" xmlns:v-on="http://www.w3.org/1999/xhtml">
   <head>
     <title>Math Game</title>
     <meta content="">
@@ -134,7 +134,7 @@
                   console.log(data);
                   vm.current_user = _.cloneDeep(data);
                   vm.tmp_current_user = _.cloneDeep(data);
-                })
+                });
 
                 vm.socket.on('update_all_users', function(data){
                   console.log('update all users');
@@ -143,7 +143,7 @@
                   });
                   console.log(data);
                   vm.other_users = data;
-                })
+                });
 
                 $('#my-modal-change-user-info').on('hidden.bs.modal', function () {
                   console.log('modal closed');
