@@ -119,7 +119,7 @@
                     </div><!-- /.modal -->
                 </div>
 
-                <span v-if="!current_user.my_room">
+                <span v-if="!all_rooms[current_user.key]">
                     <button class="btn btn-primary" data-toggle="modal"
                             data-target="#my-modal-create-room">Create PK Room</button>
                     <div class="modal fade" tabindex="-1" role="dialog" aria-hidden="true" id="my-modal-create-room">
@@ -172,7 +172,7 @@
         <!--</div>-->
 
         <!--my pk room-->
-        <div class="row" v-if="current_user.my_room">
+        <div class="row" v-if="all_rooms[current_user.key]">
             <p></p>
             <div class="col-xs-6">
                 <div class="panel panel-primary">
@@ -181,16 +181,16 @@
                     </div>
                     <div class="panel-body">
                         <div class="list-group">
-                            <span class="list-group-item"><i class="fa fa-home fa-3x" aria-hidden="true"></i>Room ID: {{current_user.my_room.id}}</span>
-                            <span class="list-group-item"><i class="fa fa-key fa-3x" aria-hidden="true"></i>PassCode: {{current_user.my_room.passcode}}</span>
+                            <span class="list-group-item"><i class="fa fa-home fa-3x" aria-hidden="true"></i>Room ID: {{current_user.key}}</span>
+                            <span class="list-group-item"><i class="fa fa-key fa-3x" aria-hidden="true"></i>PassCode: {{tmp_room_passcode}}</span>
                         </div>
-                        <div class="typewriter" v-if="!current_user.my_room.joined_user_key">
+                        <div class="typewriter" v-if="!my_joined_user">
                             <span class="text-primary"><b>Waiting for other player to join...</b></span>
                         </div>
-                        <div class="typewriter" v-if="joined_user">
-                            <img :src="joined_user.img_url" class="img-circle" alt="Cinque Terre" width="50" height="50">
-                            <span class="label label-info">id: {{joined_user.key}}</span>
-                            <span class="label label-danger">name: {{joined_user.name}}</span>
+                        <div class="typewriter" v-if="my_joined_user">
+                            <img :src="my_joined_user.img_url" class="img-circle" alt="Cinque Terre" width="50" height="50">
+                            <span class="label label-info">id: {{my_joined_user.key}}</span>
+                            <span class="label label-danger">name: {{my_joined_user.name}}</span>
                         </div>
                     </div>
                 </div>
@@ -198,35 +198,33 @@
         </div>
         <!--/my pk room-->
 
-        <!--my joined room-->
-        <div class="row" v-if="current_user.my_room">
-
-        </div>
+        <!--todo: my joined room-->
         <!--/my joined room-->
 
 
     </div>
 
+    <!--all other rooms-->
     <div class="row">
         <div class="col-xs-12">
 
             <transition-group name="other-user-list" tag="ul">
-                <li v-for="user in other_users" v-bind:key="user.key">
-                    <img :src="user.img_url" class="img-circle" alt="Cinque Terre" width="50" height="50">
-                    <span class="label label-info">id: {{user.key}}</span>
-                    <span class="label label-danger">name: {{user.name}}</span>
+                <li v-for="room in all_rooms_details_list" v-bind:key="room.owner_user.key" v-if="room.owner_user.key!==current_user.key">
+                    <img :src="room.owner_user.img_url" class="img-circle" alt="Cinque Terre" width="50" height="50">
+                    <span class="label label-info">id: {{room.owner_user.key}}</span>
+                    <span class="label label-danger">name: {{room.owner_user.name}}</span>
 
-                    <span v-if="user.my_room && !user.my_room.joined_user_key">
-                        <span v-if="user.my_room">is waiting for others to join...</span>
-                        <button class="btn btn-success" v-on:click="join_room(user.key)">PK Him/Her</button>
+                    <span v-if="!room.joined_user">
+                        <span>is waiting for others to join...</span>
+                        <button class="btn btn-success" v-on:click="join_room(room.owner_user.key)" v-if="can_i_join_room">PK Him/Her</button>
                     </span>
 
 
-                    <span v-if="user.my_room && user.my_room.join_user">
+                    <span v-if="room.joined_user">
                         <b>vs</b>
-                        <img :src="user.my_room.join_user.img_url" class="img-circle" alt="Cinque Terre" width="50" height="50">
-                        <span class="label label-info">id: {{user.my_room.join_user.key}}</span>
-                        <span class="label label-danger">name: {{user.my_room.join_user.name}}</span>
+                        <img :src="room.joined_user.img_url" class="img-circle" alt="Cinque Terre" width="50" height="50">
+                        <span class="label label-info">id: {{room.joined_user.key}}</span>
+                        <span class="label label-danger">name: {{room.joined_user.name}}</span>
                     </span>
 
                 </li>
@@ -234,6 +232,7 @@
 
         </div>
     </div>
+    <!--/all other rooms-->
 
 </div>
 
@@ -246,51 +245,58 @@
             current_user: {
                 key: '',
                 name: '',
-                img_url: '',
-                my_room: null,
-                join_room_id: null
+                img_url: ''
             },
             tmp_current_user: {
                 key: '',
                 name: '',
-                img_url: '',
-                my_room: null,
-                join_room_id: null
+                img_url: ''
             },
             tmp_room_passcode: '',
             all_users: [],
+            all_rooms: {},
             my_error: '',
             is_req_waiting: false
         },
         computed: {
 
-            other_users: function () {
+            // data structure: [{owner_user: <user object>, has_passcode: <string>, joined_user: <user object>}, ...]
+            all_rooms_details_list: function () {
                 let vm = this;
-                data = [];
+
+                room_data = [];
                 vm.all_users.forEach(function (user, index) {
-                    if (user.key !== vm.current_user.key){
-                        copy_user = _.cloneDeep(user);
 
-                        if (copy_user.my_room && copy_user.my_room.joined_user_key){
-                            copy_user.my_room.join_user = vm.get_user(user.my_room.joined_user_key);
-                        }
+                    let room = vm.all_rooms[user.key];
 
-                        data.push(copy_user);
-
+                    if (room){
+                        let owner_user = user;
+                        let has_passcode = room.has_passcode;
+                        let joined_user = room.joined_user_key? vm.get_user(room.joined_user_key):null;
+                        room_data.push({owner_user: owner_user, joined_user: joined_user, has_passcode: has_passcode});
                     }
+
                 });
 
-                return data;
+                return room_data;
+
             },
 
-            joined_user: function () {
-                if (this.current_user.my_room && this.current_user.my_room.joined_user_key){
-//                    return _.find(this.other_users, { 'key': this.current_user.my_room.joined_user_key});
-                    return this.get_user(this.current_user.my_room.joined_user_key);
-                }
-                else{
-                    return null;
-                }
+            my_joined_user: function () {
+                let vm = this;
+                let my_room = vm.all_rooms[vm.current_user.key];
+                return  my_room && my_room.joined_user_key? vm.get_user(my_room.joined_user_key):null;
+            },
+
+            can_i_join_room: function () {
+                let vm = this;
+
+                // if i already create a room. cannot join other rooms
+                if (vm.all_rooms[vm.current_user.key]) return false;
+
+                // if i already joined other rooms. cannot join
+                return !vm.get_joined_room_key(vm.current_user.key);
+
             }
 
         },
@@ -298,46 +304,25 @@
             let vm = this;
             vm.socket = io();
 
-            vm.socket.on('init_user', function (data) {
-                console.log(data);
-
-                // init current user
-                vm.current_user = _.cloneDeep(data);
-                vm.tmp_current_user = _.cloneDeep(data);
-
-            });
-
             vm.socket.on('change_user_done', function (data) {
-                console.log('user changed!');
-                console.log(data);
-                vm.current_user = _.cloneDeep(data);
-                vm.tmp_current_user = _.cloneDeep(data);
+                console.log(data.msg);
+                console.log('new current user:');
+                console.log(data.current_user);
+                vm.current_user = _.cloneDeep(data.current_user);
+                vm.tmp_current_user = _.cloneDeep(data.current_user);
             });
 
             vm.socket.on('update_all_users', function (data) {
-                console.log('update all users');
-                console.log(data);
-                vm.all_users = _.cloneDeep(data);
-            });
+                console.log('update all users...');
 
-            // todo: merge this with chang_user_done, init_user
-            vm.socket.on('create_room_done', function (data) {
-                console.log('create room done!');
-                console.log(data);
+                console.log('all_users:');
+                console.log(data.all_users);
 
-                // update client data
-                vm.current_user = _.cloneDeep(data);
-                vm.tmp_current_user = _.cloneDeep(data);
-            });
+                console.log('all_rooms:');
+                console.log(data.all_rooms);
 
-            vm.socket.on('join_room_done', function (data) {
-                console.log('join room done!');
-                console.log(data);
-
-                // update client data
-                vm.current_user = _.cloneDeep(data);
-                vm.tmp_current_user = _.cloneDeep(data);
-
+                vm.all_users = _.cloneDeep(data.all_users);
+                vm.all_rooms = _.cloneDeep(data.all_rooms);
             });
 
             vm.socket.on('my_error', function (error) {
@@ -346,21 +331,6 @@
                 setTimeout(function () {
                     vm.my_error = '';
                 }, 5000);
-            });
-
-            vm.socket.on('some_join_you', function (data) {
-
-//                if (!vm.current_user.my_room){
-//                     vm.socket.emit('join_error', 'room no longer exists');
-//                     return;
-//                }
-
-                console.log('user ' + data.my_room.joined_user_key + ' join you');
-
-                // update current user data
-                vm.current_user = _.cloneDeep(data);
-                vm.tmp_current_user = _.cloneDeep(data);
-
             });
 
             /*room msg*/
@@ -386,6 +356,12 @@
                 let vm = this;
 
                 return _.find(vm.all_users, { 'key': user_key});
+            },
+
+            get_joined_room_key: function (user_key) {
+                let vm = this;
+
+                return _.findKey(vm.all_rooms, { 'joined_user_key': user_key});
             },
 
             user_form_submit: function () {
