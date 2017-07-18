@@ -82,8 +82,8 @@ io.on('connection', function (socket) {
         join_room(socket,data.user_key);
 
         // broadcast to room
-        console.log('broadcast to room: '+socket.join_room_id);
-        io.to(socket.join_room_id).emit('room_internal_msg', 'join room');
+        console.log('broadcast to room: '+data.user_key);
+        io.to(data.user_key).emit('room_internal_msg', 'join room');
 
         // broadcast to all users
         broadcast_all_users();
