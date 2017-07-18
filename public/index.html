@@ -196,13 +196,13 @@
                             <span class="list-group-item"><i class="fa fa-home fa-3x" aria-hidden="true"></i>Room ID: {{current_user.key}}</span>
                             <span class="list-group-item"><i class="fa fa-key fa-3x" aria-hidden="true"></i>PassCode: {{tmp_room_passcode}}</span>
                         </div>
-                        <div class="typewriter" v-if="!my_joined_user">
+                        <div class="typewriter" v-if="!user_join_me">
                             <span class="text-primary"><b>Waiting for other player to join...</b></span>
                         </div>
-                        <div class="typewriter" v-if="my_joined_user">
-                            <img :src="my_joined_user.img_url" class="img-circle" alt="Cinque Terre" width="50" height="50">
-                            <span class="label label-info">id: {{my_joined_user.key}}</span>
-                            <span class="label label-danger">name: {{my_joined_user.name}}</span>
+                        <div class="typewriter" v-if="user_join_me">
+                            <img :src="user_join_me.img_url" class="img-circle" alt="Cinque Terre" width="50" height="50">
+                            <span class="label label-info">id: {{user_join_me.key}}</span>
+                            <span class="label label-danger">name: {{user_join_me.name}}</span>
                         </div>
                     </div>
                 </div>
@@ -216,73 +216,84 @@
 
     </div>
 
-    <!--users without rooms-->
-    <div class="row">
-        <div class="col-sx-12">
-            <h2>Users Without Rooms</h2>
-        </div>
+    <!--platform-info-->
+    <div id="platform-info" v-if="!is_game_start">
+        <!--users without rooms-->
+        <div class="row">
+            <div class="col-sx-12">
+                <h2>Users Without Rooms</h2>
+            </div>
 
-        <div class="col-sx-12">
-            <!--avoid self-->
-            <figure style="display: inline-block" v-for="user in all_user_without_rooms" v-if="user.key!==current_user.key">
-                <img :src="user.img_url" class="img-circle" alt="Cinque Terre" width="50" height="50">
-                <figcaption>
-                    <span class="label label-info my-user-icon-label">id: {{user.key}}</span>
-                    <br/>
-                    <span class="label label-danger my-user-icon-label">name: {{user.name}}</span>
-                </figcaption>
-            </figure>
-
-            <!--<figure style="display: inline-block">-->
-                <!--<img src="img.jpg" alt="my img" />-->
-                <!--<figcaption> Your text </figcaption>-->
-            <!--</figure>-->
-
-            <!--<figure style="display: inline-block">-->
-                <!--<img src="img.jpg" alt="my img" />-->
-                <!--<figcaption> Your text </figcaption>-->
-            <!--</figure>-->
-        </div>
-
-    </div>
-    <!--/users without rooms-->
-
-    <hr />
-
-    <!--all other rooms-->
-    <div class="row">
-        <div class="col-sx-12">
-            <h2>Rooms</h2>
-        </div>
-
-        <div class="col-xs-12">
-
-            <transition-group name="other-user-list" tag="ul">
+            <div class="col-sx-12">
                 <!--avoid self-->
-                <li v-for="room in all_rooms_details_list" v-bind:key="room.owner_user.key" v-if="room.owner_user.key!==current_user.key">
-                    <img :src="room.owner_user.img_url" class="img-circle" alt="Cinque Terre" width="50" height="50">
-                    <span class="label label-info">id: {{room.owner_user.key}}</span>
-                    <span class="label label-danger">name: {{room.owner_user.name}}</span>
+                <figure style="display: inline-block" v-for="user in all_user_without_rooms" v-if="user.key!==current_user.key">
+                    <img :src="user.img_url" class="img-circle" alt="Cinque Terre" width="50" height="50">
+                    <figcaption>
+                        <span class="label label-info my-user-icon-label">id: {{user.key}}</span>
+                        <br/>
+                        <span class="label label-danger my-user-icon-label">name: {{user.name}}</span>
+                    </figcaption>
+                </figure>
 
-                    <span v-if="!room.joined_user">
+                <!--<figure style="display: inline-block">-->
+                <!--<img src="img.jpg" alt="my img" />-->
+                <!--<figcaption> Your text </figcaption>-->
+                <!--</figure>-->
+
+                <!--<figure style="display: inline-block">-->
+                <!--<img src="img.jpg" alt="my img" />-->
+                <!--<figcaption> Your text </figcaption>-->
+                <!--</figure>-->
+            </div>
+
+        </div>
+        <!--/users without rooms-->
+
+        <hr />
+
+        <!--all other rooms-->
+        <div class="row">
+            <div class="col-sx-12">
+                <h2>Rooms</h2>
+            </div>
+
+            <div class="col-xs-12">
+
+                <transition-group name="other-user-list" tag="ul">
+                    <!--avoid self-->
+                    <li v-for="room in all_rooms_details_list" v-bind:key="room.owner_user.key" v-if="room.owner_user.key!==current_user.key">
+                        <img :src="room.owner_user.img_url" class="img-circle" alt="Cinque Terre" width="50" height="50">
+                        <span class="label label-info">id: {{room.owner_user.key}}</span>
+                        <span class="label label-danger">name: {{room.owner_user.name}}</span>
+
+                        <span v-if="!room.joined_user">
                         <span>is waiting for others to join...</span>
                         <button class="btn btn-success" v-on:click="join_room(room.owner_user.key)" v-if="can_i_join_or_create_room">PK Him/Her</button>
                     </span>
 
 
-                    <span v-if="room.joined_user">
+                        <span v-if="room.joined_user">
                         <b>vs</b>
                         <img :src="room.joined_user.img_url" class="img-circle" alt="Cinque Terre" width="50" height="50">
                         <span class="label label-info">id: {{room.joined_user.key}}</span>
                         <span class="label label-danger">name: {{room.joined_user.name}}</span>
                     </span>
 
-                </li>
-            </transition-group>
+                    </li>
+                </transition-group>
 
+            </div>
         </div>
+        <!--/all other rooms-->
     </div>
-    <!--/all other rooms-->
+    <!--/platform-info-->
+
+    <!--todo: game console-->
+    <div id="game-console" v-if="is_game_start">
+        <h1 class="typewriter">Game Start!</h1>
+        <br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/>
+    </div>
+    <!--game console-->
 
 </div>
 
@@ -306,7 +317,8 @@
             all_users: [],
             all_rooms: {},
             my_error: '',
-            is_req_waiting: false
+            is_req_waiting: false,
+            is_game_start: false
         },
         computed: {
 
@@ -337,10 +349,19 @@
                 return vm.get_all_user_without_rooms();
             },
 
-            my_joined_user: function () {
+            user_join_me: function () {
                 let vm = this;
-                let my_room = vm.all_rooms[vm.current_user.key];
-                return  my_room && my_room.joined_user_key? vm.get_user(my_room.joined_user_key):null;
+                return vm.get_user_join_me();
+            },
+
+            user_i_join: function () {
+                let vm = this;
+                return vm.get_user_i_join();
+            },
+
+            should_game_start: function () {
+                let vm = this;
+                return vm.get_user_join_me() || vm.get_user_i_join();
             },
 
             can_i_join_or_create_room: function () {
@@ -352,6 +373,44 @@
                 // if i already joined other rooms. cannot join
                 return !vm.get_joined_room_key(vm.current_user.key);
 
+            }
+
+        },
+        watch: {
+            user_join_me: function (val) {
+                if (val){
+                    console.log('someone join you');
+                }
+                else{
+                    console.log('someone leave you');
+                }
+            },
+
+            user_i_join: function (val) {
+                if (val){
+                    console.log('i joined someone');
+                }
+                else{
+                    console.log('i leave someone');
+                }
+            },
+
+            should_game_start: function (val) {
+                let vm = this;
+                vm.is_game_start = val;
+                if (val){
+//                    location.hash="game-location";
+//                    vm.scrollToEnd();
+
+//                    let doc = $('#game-console');
+//                    if (doc){
+//                        let position = doc.offset().top;
+//                        let height = doc.height();
+//                        console.log(position+", "+ height);
+//                        window.scrollTo(0, position+height);
+//                    }
+
+                }
             }
 
         },
@@ -410,12 +469,34 @@
 
 
         },
+        updated() {
+            console.log('updated');
+//            window.scrollTo(0, 1000);
+            let doc = $('#game-console');
+            if (this.is_game_start && doc && doc.offset()){
+                let position = doc.offset().top;
+                let height = doc.height();
+                console.log(position+", "+ height);
+                window.scrollTo(0, position+height);
+            }
+        },
         methods: {
 
             get_user: function(user_key){
                 let vm = this;
 
                 return _.find(vm.all_users, { 'key': user_key});
+            },
+
+            get_user_join_me: function () {
+                let vm = this;
+                let my_room = vm.all_rooms[vm.current_user.key];
+                return  my_room && my_room.joined_user_key? vm.get_user(my_room.joined_user_key):null;
+            },
+
+            get_user_i_join: function () {
+                let vm = this;
+                return vm.get_joined_room_key(vm.current_user.key);
             },
 
             get_joined_room_key: function (user_key) {
