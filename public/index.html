@@ -201,7 +201,7 @@
                     <span class="label label-info">id: {{user.key}}</span>
                     <span class="label label-danger">name: {{user.name}}</span>
                     <span v-if="user.my_room">is waiting for others to join...</span>
-                    <button class="btn btn-success" v-if="user.my_room">PK Him/Her</button>
+                    <button class="btn btn-success" v-if="user.my_room" v-on:click="join_room(user.key)">PK Him/Her</button>
                 </li>
             </transition-group>
 
@@ -220,13 +220,15 @@
                 key: '',
                 name: '',
                 img_url: '',
-                my_room: null
+                my_room: null,
+                join_room_id: null
             },
             tmp_current_user: {
                 key: '',
                 name: '',
                 img_url: '',
-                my_room: null
+                my_room: null,
+                join_room_id: null
             },
             tmp_room_passcode: '',
             other_users: [],
@@ -258,7 +260,7 @@
                     return user.key === vm.current_user.key
                 });
                 console.log(data);
-                vm.other_users = data;
+                vm.other_users = _.cloneDeep(data);
             });
 
             vm.socket.on('create_room_done', function (data) {
@@ -266,7 +268,18 @@
                 console.log(data);
 
                 // update client data
-                vm.current_user = data;
+                vm.current_user = _.cloneDeep(data);
+                vm.tmp_current_user = _.cloneDeep(data);
+            });
+
+            vm.socket.on('join_room_done', function (data) {
+                console.log('join room done!');
+                console.log(data);
+
+                // update client data
+                vm.current_user = _.cloneDeep(data);
+                vm.tmp_current_user = _.cloneDeep(data);
+
             });
 
             vm.socket.on('my_error', function (error) {
@@ -277,8 +290,8 @@
                 }, 5000);
             });
 
-            this.socket.on('room_test', function (data) {
-                console.log(data);
+            this.socket.on('room_internal_msg', function (data) {
+                console.log('room_internal_msg: '+ data);
             });
 
             $('#my-modal-change-user-info').on('hidden.bs.modal', function () {
@@ -317,6 +330,17 @@
 
                 $('#my-modal-create-room').modal('hide');
 
+            },
+
+            join_room: function (user_key) {
+                // todo: input passcode
+
+                let vm = this;
+
+                console.log(user_key);
+
+                // send join request to server
+                vm.socket.emit('join_room', {user_key: user_key});
             }
 
         }

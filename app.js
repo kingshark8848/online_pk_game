@@ -41,8 +41,16 @@ io.on('connection', function (socket) {
 
         // broadcast to room
         console.log('broadcast to room: '+socket.my_room.id);
-        io.to(socket.my_room.id).emit('room_test', 'this a room internal msg');
+        io.to(socket.my_room.id).emit('room_internal_msg', 'create room');
 
+    });
+
+    socket.on('join_room', function (data) {
+        // join room
+        join_room(socket,data.user_key);
+
+        console.log('broadcast to room: '+socket.join_room_id);
+        io.to(socket.join_room_id).emit('room_internal_msg', 'join room');
     });
 
     socket.on('disconnect', function () {
@@ -57,7 +65,8 @@ function get_user(socket) {
         key: socket.key,
         name: socket.name,
         img_url: socket.img_url,
-        my_room: _.cloneDeep(socket.my_room) //important
+        my_room: _.cloneDeep(socket.my_room), //important
+        join_room_id: socket.join_room_id
     }
 }
 
@@ -84,6 +93,7 @@ function init_user(socket) {
     socket.name = socket.key;
     socket.img_url = app_url + ":" + port + '/img/avatar/1.jpg';
     socket.my_room = null;
+    socket.join_room_id = null;
 
     SOCKET_LIST[socket.key] = socket;
 
@@ -136,6 +146,34 @@ function create_room(socket, room_passcode) {
 
     // broadcast to all users
     broadcast_all_users();
+}
+
+function join_room(socket, user_key) {
+    console.log('join room: '+ user_key);
+
+    // find user_key mapped socket
+    let room_onwer_socket = SOCKET_LIST[user_key];
+
+    // check if exists
+    if (!room_onwer_socket){
+        socket.emit('my_error', 'room owner socket not exists!');
+        return;
+    }
+
+    // todo: check passcode
+
+    // add room prop to socket
+    socket.join_room_id = room_onwer_socket.my_room.id;
+
+    // socket join room
+    socket.join(room_onwer_socket.my_room.id);
+
+    // notify client
+    socket.emit('join_room_done', get_user(socket));
+
+    // broadcast to all users
+    broadcast_all_users();
+
 }
 
 function broadcast_all_users() {
