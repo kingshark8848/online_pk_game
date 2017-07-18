@@ -388,6 +388,10 @@
                 }, 5000);
             });
 
+            vm.socket.on('socket_init_fail', function (error) {
+                $('#vue-game').html("<h1>error: "+error+". please reload page later on.</h1>");
+            });
+
             /*room msg*/
             this.socket.on('room_internal_msg', function (data) {
                 console.log('room_internal_msg: '+ data);

@@ -22,10 +22,19 @@ http.listen(port, function () {
 let SOCKET_LIST = {};
 let ALL_USERS = [];
 let ROOMS = {}; // owner_key: {joined_user_key: ??, passcode: ??}
-const ROOM_MAX_NUM = 5;
-const USER_MAX_NUM = 10;
+const ROOM_MAX_NUM = 3;
+const USER_MAX_NUM = 5;
 
 io.on('connection', function (socket) {
+
+    // check max user limit
+    if (_.keys(SOCKET_LIST).length>=USER_MAX_NUM){
+        console.log('exceed max user number limit');
+
+        socket.emit('socket_init_fail', 'exceed max user number limit');
+        socket.disconnect();
+        return;
+    }
 
     // init socket
     init_user(socket);
@@ -50,6 +59,13 @@ io.on('connection', function (socket) {
     });
 
     socket.on('create_game_room', function (data) {
+        // check room max number limit
+        if (_.keys(ROOMS).length>=ROOM_MAX_NUM){
+            socket.emit('my_error', 'exceed max room num limit, create room failed.');
+            return;
+        }
+
+
         // create room
         create_room(socket, data);
 
