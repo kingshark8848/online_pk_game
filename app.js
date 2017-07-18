@@ -22,16 +22,30 @@ http.listen(port, function () {
 let SOCKET_LIST = {};
 let ALL_USERS = [];
 let ROOMS = {}; // owner_key: {joined_user_key: ??, passcode: ??}
+const ROOM_MAX_NUM = 5;
+const USER_MAX_NUM = 10;
 
 io.on('connection', function (socket) {
 
     // init socket
     init_user(socket);
 
+    // send socket info to client
+    socket.emit('change_user_done', {msg: "init user done", current_user: get_user(socket)});
+
+    // broadcast to all users
+    broadcast_all_users();
+
 
     socket.on('change_user', function (data) {
         // change user
         change_user(socket, data);
+
+        // notify client
+        socket.emit('change_user_done', {msg: "update user done", current_user: get_user(socket)});
+
+        // broadcast to all users
+        broadcast_all_users();
 
     });
 
@@ -43,18 +57,39 @@ io.on('connection', function (socket) {
         console.log('broadcast to room: '+socket.key);
         io.to(socket.key).emit('room_internal_msg', 'create room');
 
+        // broadcast to all users
+        broadcast_all_users();
     });
 
     socket.on('join_room', function (data) {
         // join room
         join_room(socket,data.user_key);
 
+        // broadcast to room
         console.log('broadcast to room: '+socket.join_room_id);
         io.to(socket.join_room_id).emit('room_internal_msg', 'join room');
+
+        // broadcast to all users
+        broadcast_all_users();
+    });
+
+    socket.on('leave_room', function () {
+        // delete my room
+        delete_my_room(socket);
+
+        // leave joined room
+        leave_joined_room(socket);
+
+        // broadcast to all users
+        broadcast_all_users();
+
     });
 
     socket.on('disconnect', function () {
         remove_user(socket);
+
+        // broadcast to all users
+        broadcast_all_users();
     })
 
 });
@@ -86,12 +121,6 @@ function init_user(socket) {
 
     SOCKET_LIST[socket.key] = socket;
 
-    // send socket info to client
-    socket.emit('change_user_done', {msg: "init user done", current_user: get_user(socket)});
-
-    // broadcast to all users
-    broadcast_all_users();
-
 }
 
 function change_user(socket, new_user_data) {
@@ -100,34 +129,29 @@ function change_user(socket, new_user_data) {
     // change data
     socket.name = new_user_data.name;
 
-    // notify client
-    socket.emit('change_user_done', {msg: "update user done", current_user: get_user(socket)});
-
-    // broadcast to all users
-    broadcast_all_users();
 }
 
 function remove_user(socket) {
     // delete his room
-    delete ROOMS[socket.key];
+    delete_my_room(socket);
 
     // delete his join info and leave rooms
-    remove_user_join_info(socket.key);
+    leave_joined_room(socket);
 
     // delete socket info from SOCKET_LIST
     delete SOCKET_LIST[socket.key];
 
     console.log('user ' + socket.key + ' disconnected');
-
-    // broadcast to all users
-    broadcast_all_users();
 }
 
-function remove_user_join_info(user_key) {
+function leave_joined_room(socket) {
 
     for (let owner_key in ROOMS){
-        if (ROOMS[owner_key].joined_user_key === user_key){
+        if (ROOMS[owner_key].joined_user_key === socket.key){
             ROOMS[owner_key].joined_user_key = null;
+
+            // leave socket room
+            socket.leave(socket.key, null);
         }
     }
 
@@ -148,17 +172,16 @@ function create_room(socket, room_passcode) {
     console.log('socket join room:'+socket.key);
     socket.join(socket.key);
 
-    // broadcast to all users
-    broadcast_all_users();
 }
 
 function delete_my_room(socket) {
 
-    // check if room exists
-    if(!ROOMS[socket.key]){
-        socket.emit('my_error', 'your room not found');
-        return;
-    }
+    // // check if room exists
+    // if(!ROOMS[socket.key]){
+    //     socket.emit('my_error', 'your room not found');
+    //
+    //     return;
+    // }
 
     // remove room from ROOMS
     delete ROOMS[socket.key];
@@ -167,9 +190,6 @@ function delete_my_room(socket) {
     socket.leave(socket.key, null);
 
     console.log('user '+ socket.key + ' delete his room');
-
-    // broadcast to all users
-    broadcast_all_users();
 
 }
 
@@ -200,9 +220,6 @@ function join_room(socket, user_key) {
 
     // change room info. add joined_user_key
     ROOMS[user_key].joined_user_key = socket.key;
-
-    // broadcast to all users
-    broadcast_all_users();
 
 }
 

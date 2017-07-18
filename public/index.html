@@ -47,6 +47,10 @@
             from, to { border-color: transparent }
             50% { border-color: orange; }
         }
+
+        .my-user-icon-label {
+            line-height: 2;
+        }
     </style>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/2.0.3/socket.io.js"></script>
@@ -82,6 +86,7 @@
             </div>
 
             <div class="col-xs-6">
+                <!--change user info button-->
                 <button class="btn btn-primary" data-toggle="modal" data-target="#my-modal-change-user-info">Change User
                     Info
                 </button>
@@ -119,7 +124,8 @@
                     </div><!-- /.modal -->
                 </div>
 
-                <span v-if="!all_rooms[current_user.key]">
+                <!--create room button-->
+                <span v-if="can_i_join_or_create_room">
                     <button class="btn btn-primary" data-toggle="modal"
                             data-target="#my-modal-create-room">Create PK Room</button>
                     <div class="modal fade" tabindex="-1" role="dialog" aria-hidden="true" id="my-modal-create-room">
@@ -161,6 +167,12 @@
                         </div><!-- /.modal -->
                     </div>
                 </span>
+
+                <!--leave room button-->
+                <span v-if="!can_i_join_or_create_room">
+                    <button class="btn btn-default" v-on:click="leave_room">Leave Room</button>
+                </span>
+
             </div>
         </div>
 
@@ -204,11 +216,49 @@
 
     </div>
 
+    <!--users without rooms-->
+    <div class="row">
+        <div class="col-sx-12">
+            <h2>Users Without Rooms</h2>
+        </div>
+
+        <div class="col-sx-12">
+            <!--avoid self-->
+            <figure style="display: inline-block" v-for="user in all_user_without_rooms" v-if="user.key!==current_user.key">
+                <img :src="user.img_url" class="img-circle" alt="Cinque Terre" width="50" height="50">
+                <figcaption>
+                    <span class="label label-info my-user-icon-label">id: {{user.key}}</span>
+                    <br/>
+                    <span class="label label-danger my-user-icon-label">name: {{user.name}}</span>
+                </figcaption>
+            </figure>
+
+            <!--<figure style="display: inline-block">-->
+                <!--<img src="img.jpg" alt="my img" />-->
+                <!--<figcaption> Your text </figcaption>-->
+            <!--</figure>-->
+
+            <!--<figure style="display: inline-block">-->
+                <!--<img src="img.jpg" alt="my img" />-->
+                <!--<figcaption> Your text </figcaption>-->
+            <!--</figure>-->
+        </div>
+
+    </div>
+    <!--/users without rooms-->
+
+    <hr />
+
     <!--all other rooms-->
     <div class="row">
+        <div class="col-sx-12">
+            <h2>Rooms</h2>
+        </div>
+
         <div class="col-xs-12">
 
             <transition-group name="other-user-list" tag="ul">
+                <!--avoid self-->
                 <li v-for="room in all_rooms_details_list" v-bind:key="room.owner_user.key" v-if="room.owner_user.key!==current_user.key">
                     <img :src="room.owner_user.img_url" class="img-circle" alt="Cinque Terre" width="50" height="50">
                     <span class="label label-info">id: {{room.owner_user.key}}</span>
@@ -216,7 +266,7 @@
 
                     <span v-if="!room.joined_user">
                         <span>is waiting for others to join...</span>
-                        <button class="btn btn-success" v-on:click="join_room(room.owner_user.key)" v-if="can_i_join_room">PK Him/Her</button>
+                        <button class="btn btn-success" v-on:click="join_room(room.owner_user.key)" v-if="can_i_join_or_create_room">PK Him/Her</button>
                     </span>
 
 
@@ -282,13 +332,18 @@
 
             },
 
+            all_user_without_rooms: function () {
+                let vm = this;
+                return vm.get_all_user_without_rooms();
+            },
+
             my_joined_user: function () {
                 let vm = this;
                 let my_room = vm.all_rooms[vm.current_user.key];
                 return  my_room && my_room.joined_user_key? vm.get_user(my_room.joined_user_key):null;
             },
 
-            can_i_join_room: function () {
+            can_i_join_or_create_room: function () {
                 let vm = this;
 
                 // if i already create a room. cannot join other rooms
@@ -352,6 +407,7 @@
 
         },
         methods: {
+
             get_user: function(user_key){
                 let vm = this;
 
@@ -362,6 +418,37 @@
                 let vm = this;
 
                 return _.findKey(vm.all_rooms, { 'joined_user_key': user_key});
+            },
+
+            get_all_joiner_maps: function () {
+                let vm = this;
+                let data = {};
+                _.forIn(vm.all_rooms, function(value, key) {
+
+                    if (value.joined_user_key){
+                        data[value.joined_user_key] = key;
+                    }
+
+                });
+
+                return data; // {join_key: owner_key, ...}
+            },
+
+            get_all_user_without_rooms: function () {
+                let vm = this;
+                let data = [];
+
+                let all_joiner_maps = vm.get_all_joiner_maps();
+
+                vm.all_users.forEach(function (user, index) {
+
+                    if (!vm.all_rooms[user.key] && !all_joiner_maps[user.key] ){
+                        data.push(user);
+                    }
+
+                });
+
+                return data; // []
             },
 
             user_form_submit: function () {
@@ -393,10 +480,17 @@
 
                 let vm = this;
 
-                console.log(user_key);
+//                console.log(user_key);
 
                 // send join request to server
                 vm.socket.emit('join_room', {user_key: user_key});
+            },
+
+            leave_room: function () {
+                let vm = this;
+
+                vm.socket.emit('leave_room', null);
+
             }
 
         }
