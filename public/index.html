@@ -2,6 +2,8 @@
 <head>
     <title>Math Game</title>
     <meta content="">
+    <link rel="shortcut icon" type="image/png" href="img/favicon-16x16.png"/>
+
     <link href="https://bootswatch.com/simplex/bootstrap.min.css" rel="stylesheet">
     <link href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css" rel="stylesheet"
           integrity="sha384-wvfXpqpZZVQGK6TAh5PVlGOfQNHSoD2xbE+QkPxCAFlNEevoEH3Sl0sibVcOQVnN" crossorigin="anonymous">
@@ -169,6 +171,7 @@
 
         <!--</div>-->
 
+        <!--my pk room-->
         <div class="row" v-if="current_user.my_room">
             <p></p>
             <div class="col-xs-6">
@@ -181,13 +184,25 @@
                             <span class="list-group-item"><i class="fa fa-home fa-3x" aria-hidden="true"></i>Room ID: {{current_user.my_room.id}}</span>
                             <span class="list-group-item"><i class="fa fa-key fa-3x" aria-hidden="true"></i>PassCode: {{current_user.my_room.passcode}}</span>
                         </div>
-                        <div class="typewriter">
+                        <div class="typewriter" v-if="!current_user.my_room.joined_user_key">
                             <span class="text-primary"><b>Waiting for other player to join...</b></span>
+                        </div>
+                        <div class="typewriter" v-if="joined_user">
+                            <img :src="joined_user.img_url" class="img-circle" alt="Cinque Terre" width="50" height="50">
+                            <span class="label label-info">id: {{joined_user.key}}</span>
+                            <span class="label label-danger">name: {{joined_user.name}}</span>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
+        <!--/my pk room-->
+
+        <!--my joined room-->
+        <div class="row" v-if="current_user.my_room">
+
+        </div>
+        <!--/my joined room-->
 
 
     </div>
@@ -200,8 +215,20 @@
                     <img :src="user.img_url" class="img-circle" alt="Cinque Terre" width="50" height="50">
                     <span class="label label-info">id: {{user.key}}</span>
                     <span class="label label-danger">name: {{user.name}}</span>
-                    <span v-if="user.my_room">is waiting for others to join...</span>
-                    <button class="btn btn-success" v-if="user.my_room" v-on:click="join_room(user.key)">PK Him/Her</button>
+
+                    <span v-if="user.my_room && !user.my_room.joined_user_key">
+                        <span v-if="user.my_room">is waiting for others to join...</span>
+                        <button class="btn btn-success" v-on:click="join_room(user.key)">PK Him/Her</button>
+                    </span>
+
+
+                    <span v-if="user.my_room && user.my_room.join_user">
+                        <b>vs</b>
+                        <img :src="user.my_room.join_user.img_url" class="img-circle" alt="Cinque Terre" width="50" height="50">
+                        <span class="label label-info">id: {{user.my_room.join_user.key}}</span>
+                        <span class="label label-danger">name: {{user.my_room.join_user.name}}</span>
+                    </span>
+
                 </li>
             </transition-group>
 
@@ -231,8 +258,41 @@
                 join_room_id: null
             },
             tmp_room_passcode: '',
-            other_users: [],
-            my_error: ''
+            all_users: [],
+            my_error: '',
+            is_req_waiting: false
+        },
+        computed: {
+
+            other_users: function () {
+                let vm = this;
+                data = [];
+                vm.all_users.forEach(function (user, index) {
+                    if (user.key !== vm.current_user.key){
+                        copy_user = _.cloneDeep(user);
+
+                        if (copy_user.my_room && copy_user.my_room.joined_user_key){
+                            copy_user.my_room.join_user = vm.get_user(user.my_room.joined_user_key);
+                        }
+
+                        data.push(copy_user);
+
+                    }
+                });
+
+                return data;
+            },
+
+            joined_user: function () {
+                if (this.current_user.my_room && this.current_user.my_room.joined_user_key){
+//                    return _.find(this.other_users, { 'key': this.current_user.my_room.joined_user_key});
+                    return this.get_user(this.current_user.my_room.joined_user_key);
+                }
+                else{
+                    return null;
+                }
+            }
+
         },
         mounted() {
             let vm = this;
@@ -256,13 +316,11 @@
 
             vm.socket.on('update_all_users', function (data) {
                 console.log('update all users');
-                _.remove(data, function (user) {
-                    return user.key === vm.current_user.key
-                });
                 console.log(data);
-                vm.other_users = _.cloneDeep(data);
+                vm.all_users = _.cloneDeep(data);
             });
 
+            // todo: merge this with chang_user_done, init_user
             vm.socket.on('create_room_done', function (data) {
                 console.log('create room done!');
                 console.log(data);
@@ -290,6 +348,22 @@
                 }, 5000);
             });
 
+            vm.socket.on('some_join_you', function (data) {
+
+//                if (!vm.current_user.my_room){
+//                     vm.socket.emit('join_error', 'room no longer exists');
+//                     return;
+//                }
+
+                console.log('user ' + data.my_room.joined_user_key + ' join you');
+
+                // update current user data
+                vm.current_user = _.cloneDeep(data);
+                vm.tmp_current_user = _.cloneDeep(data);
+
+            });
+
+            /*room msg*/
             this.socket.on('room_internal_msg', function (data) {
                 console.log('room_internal_msg: '+ data);
             });
@@ -308,6 +382,12 @@
 
         },
         methods: {
+            get_user: function(user_key){
+                let vm = this;
+
+                return _.find(vm.all_users, { 'key': user_key});
+            },
+
             user_form_submit: function () {
                 let vm = this;
 

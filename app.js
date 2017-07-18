@@ -54,8 +54,21 @@ io.on('connection', function (socket) {
     });
 
     socket.on('disconnect', function () {
-        // remove user
-        remove_user(socket);
+        // clear all his joined info
+        let joined_room_socket = SOCKET_LIST[socket.join_room_id];
+        if (joined_room_socket.my_room && joined_room_socket.my_room.joined_user_key === socket.key){
+            joined_room_socket.my_room.joined_user_key = null;
+        }
+
+        joined_room_socket.emit('change_user_done', get_user(joined_room_socket));
+
+        // leave room
+        socket.leave(socket.join_room_id, function () {
+            // remove user
+            remove_user(socket);
+        });
+
+
     })
 
 });
@@ -135,17 +148,49 @@ function create_room(socket, room_passcode) {
     }
 
     // add room prop to socket
-    socket.my_room = {id: socket.key, passcode: room_passcode};
+    socket.my_room = {id: socket.key, passcode: room_passcode, joined_user_key:null};
 
     // socket join room
     console.log('socket join room:'+socket.my_room.id);
     socket.join(socket.my_room.id);
 
     // notify client
+    // todo: merge the msg of create_room_done, init_user, change_user_done, add status in the data.
     socket.emit('create_room_done', get_user(socket));
 
     // broadcast to all users
     broadcast_all_users();
+}
+
+function delete_my_room(socket) {
+
+    // check if room exists
+    if(!socket.my_room){
+        socket.emit('my_error', 'your room not found');
+        return;
+    }
+
+    if (socket.my_room.joined_user_key){
+        // clear joined user's info
+        let joined_socket = SOCKET_LIST[socket.my_room.joined_user_key];
+        joined_socket.join_room_id = null;
+
+        // notidy the joined user
+        joined_socket.emit('change_user_done', get_user(joined_socket));
+
+    }
+
+    // remove my room data
+    socket.my_room = null;
+
+    // notify client
+    socket.emit('change_user_done', get_user(socket));
+
+    console.log('user '+ socket.key + ' delete his room');
+
+    // broadcast to all users
+    broadcast_all_users();
+
 }
 
 function join_room(socket, user_key) {
@@ -154,19 +199,31 @@ function join_room(socket, user_key) {
     // find user_key mapped socket
     let room_onwer_socket = SOCKET_LIST[user_key];
 
-    // check if exists
+    // check if owner socket exists
     if (!room_onwer_socket){
         socket.emit('my_error', 'room owner socket not exists!');
         return;
     }
 
+    // check if owner room exists
+    if (!room_onwer_socket.my_room){
+        socket.emit('my_error', 'room owner already leave the room!');
+        return;
+    }
+
     // todo: check passcode
+
+    // socket join room
+    socket.join(room_onwer_socket.my_room.id);
 
     // add room prop to socket
     socket.join_room_id = room_onwer_socket.my_room.id;
 
-    // socket join room
-    socket.join(room_onwer_socket.my_room.id);
+    // add user's key to room owner's room obejct
+    room_onwer_socket.my_room.joined_user_key = socket.key;
+
+    // notify owner
+    room_onwer_socket.emit('some_join_you', get_user(room_onwer_socket));
 
     // notify client
     socket.emit('join_room_done', get_user(socket));
