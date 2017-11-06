@@ -79,11 +79,11 @@ io.on('connection', function (socket) {
 
     socket.on('join_room', function (data) {
         // join room
-        join_room(socket,data.user_key);
+        join_room(socket,data.user_key, data.try_passcode);
 
         // broadcast to room
         console.log('broadcast to room: '+data.user_key);
-        io.to(data.user_key).emit('room_internal_msg', 'join room');
+        io.to(data.user_key).emit('room_internal_msg', 'join room '+data.user_key);
 
         // broadcast to all users
         broadcast_all_users();
@@ -177,6 +177,7 @@ function create_room(socket, room_passcode) {
 
     // check if already create room
     if (ROOMS[socket.key]){
+        console.log('you already created a room!');
         socket.emit('my_error', 'you already created a room!'); // don't use 'error' as name as it has been reserved by system.
         return;
     }
@@ -209,8 +210,9 @@ function delete_my_room(socket) {
 
 }
 
-function join_room(socket, user_key) {
+function join_room(socket, user_key, try_passcode) {
     console.log('join room: '+ user_key);
+    console.log('try passcode: '+ try_passcode );
 
     // todo: check if I already join an room
 
@@ -219,17 +221,25 @@ function join_room(socket, user_key) {
 
     // check if owner socket exists
     if (!room_onwer_socket){
+        console.log('room owner socket not exists!');
         socket.emit('my_error', 'room owner socket not exists!');
         return;
     }
 
     // check if owner room exists
     if (!ROOMS[user_key]){
+        console.log('room owner already leave the room!');
         socket.emit('my_error', 'room owner already leave the room!');
         return;
     }
 
     // todo: check passcode
+    if (ROOMS[user_key].passcode != try_passcode){
+        console.log('room passcode is wrong!');
+        socket.emit('my_error', 'room passcode is wrong!');
+        return;
+    }
+
 
     // socket join room
     socket.join(user_key);

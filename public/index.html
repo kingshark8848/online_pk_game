@@ -8,6 +8,11 @@
     <link href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css" rel="stylesheet"
           integrity="sha384-wvfXpqpZZVQGK6TAh5PVlGOfQNHSoD2xbE+QkPxCAFlNEevoEH3Sl0sibVcOQVnN" crossorigin="anonymous">
     <style>
+        .form-horizontal .form-group{
+            margin-left: 0;
+            margin-right: 0;
+        }
+
         .other-user-list-item {
             display: inline-block;
             margin-right: 10px;
@@ -268,7 +273,40 @@
 
                         <span v-if="!room.joined_user">
                         <span>is waiting for others to join...</span>
-                        <button class="btn btn-success" v-on:click="join_room(room.owner_user.key)" v-if="can_i_join_or_create_room">Join to PK</button>
+                        <!-- <button class="btn btn-success" v-on:click="join_room(room.owner_user.key)" v-if="can_i_join_or_create_room">Join to PK</button> -->
+                        
+                        <!-- todo!!! -->
+                        <button class="btn btn-success" data-toggle="modal"
+                        :data-target="'#join-room-'+room.owner_user.key">Join to PK</button>
+                        <div class="modal fade" tabindex="-1" role="dialog" aria-hidden="true" :id="'join-room-'+room.owner_user.key">
+                            <div class="modal-dialog">
+                                <div class="modal-content">
+
+                                    <form class="form-horizontal" v-on:submit.prevent="join_room_form_submit($event, room.owner_user.key, try_join)">
+                                        <div class="form-group">
+                                            <label class="control-label col-sm-2" for="room-key">Room Key</label>
+                                            <div class="col-sm-8">
+                                                <p class="form-control-static">{{room.owner_user.key}}</p>
+                                            </div>
+                                        </div>
+                                        <div class="form-group">
+                                            <label class="control-label col-sm-2" for="try-passcode">Room Key</label>
+                                            <div class="col-sm-8">
+                                                <input type="password" class="form-control" name="try-passcode" v-model="try_join.passcode">
+                                            </div>
+                                        </div>
+                                        <div class="form-group">
+                                            <div class="col-sm-8">
+                                                <button type="submit" class="btn btn-default">Submit</button>   
+                                            </div>
+                                        </div>
+                                    </form>
+                            
+                                </div><!-- /.modal-content -->
+                            </div><!-- /.modal -->
+                        </div>
+                        <!-- /todo!! -->
+
                     </span>
 
 
@@ -292,6 +330,8 @@
     <div id="game-console" v-if="is_game_start">
         <h1 class="typewriter">Game Start!</h1>
         <br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/>
+        <br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/>
+        hello
     </div>
     <!--game console-->
 
@@ -318,7 +358,10 @@
             all_rooms: {},
             my_error: '',
             is_req_waiting: false,
-            is_game_start: false
+            is_game_start: false,
+            try_join: {
+                passcode: ''
+            }
         },
         computed: {
 
@@ -475,9 +518,9 @@
             let doc = $('#game-console');
             if (this.is_game_start && doc && doc.offset()){
                 let position = doc.offset().top;
-                let height = doc.height();
-                console.log(position+", "+ height);
-                window.scrollTo(0, position+height);
+                // let height = doc.height();
+                // console.log(position+", "+ height);
+                window.scrollTo(0, position);
             }
         },
         methods: {
@@ -560,15 +603,17 @@
 
             },
 
-            join_room: function (user_key) {
-                // todo: input passcode
-
+            join_room_form_submit: function(event, room_owner_key, try_join){
                 let vm = this;
+                // let try_passcode = $($(event.target).find('input[name="try-passcode"]')).val() ;
+                let try_passcode = try_join.passcode;
 
-//                console.log(user_key);
+                console.log(room_owner_key);
+                console.log(try_passcode);
 
-                // send join request to server
-                vm.socket.emit('join_room', {user_key: user_key});
+                vm.socket.emit('join_room', {user_key: room_owner_key, try_passcode: try_passcode});
+                vm.try_join.passcode = ''; // clear try passcode
+                $('#join-room-'+room_owner_key).modal('hide');
             },
 
             leave_room: function () {
