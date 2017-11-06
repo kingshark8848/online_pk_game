@@ -4,7 +4,7 @@
     <meta content="">
     <link rel="shortcut icon" type="image/png" href="img/favicon-16x16.png"/>
 
-    <link href="https://bootswatch.com/simplex/bootstrap.min.css" rel="stylesheet">
+    <link href="/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css" rel="stylesheet"
           integrity="sha384-wvfXpqpZZVQGK6TAh5PVlGOfQNHSoD2xbE+QkPxCAFlNEevoEH3Sl0sibVcOQVnN" crossorigin="anonymous">
     <style>
@@ -217,7 +217,7 @@
     </div>
 
     <!--platform-info-->
-    <div id="platform-info" v-if="!is_game_start">
+    <div id="platform-info" class="container" v-if="!is_game_start">
         <!--users without rooms-->
         <div class="row">
             <div class="col-sx-12">
@@ -268,7 +268,7 @@
 
                         <span v-if="!room.joined_user">
                         <span>is waiting for others to join...</span>
-                        <button class="btn btn-success" v-on:click="join_room(room.owner_user.key)" v-if="can_i_join_or_create_room">PK Him/Her</button>
+                        <button class="btn btn-success" v-on:click="join_room(room.owner_user.key)" v-if="can_i_join_or_create_room">Join to PK</button>
                     </span>
 
 
